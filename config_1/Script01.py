@@ -1,1 +1,0 @@
-print("Release 1 from config_1")
