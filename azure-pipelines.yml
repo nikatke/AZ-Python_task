@@ -1,0 +1,113 @@
+trigger:
+- none
+
+parameters:
+- name: VM_Environment_Name
+  displayName: 'VM Environment Name'
+  type: string
+  values:
+  - DEV10
+  - DEV11
+  - DEV12
+  default: DEV10
+- name: Teamcenter_Install_Scenario
+  displayName: 'Teamcenter Install Scenario'
+  type: string
+  values:
+  - Install_Fnd114_AW41
+  - Install_Fnd114_AW41_G6_102
+  - Install_Fnd12_AW41
+  - Install_Fnd122_AW42_G6_102
+  default: Install_Fnd114_AW41
+
+variables:
+  dcusername: 'dcadmin'
+  dcpassword: 'dcadmin'
+  DC_QUICK_DEPLOY_PATH: 'D:\\DCQuickDeploy'
+  DC_URL: 'http://cii6p797:8083/deploymentcenter'
+  DC_DEPLOY_SCRIPT_DIR_NAME: 'deploy'
+  TARGET_VM_DEPLOY_SCRIPTS_DIR: 'C:\\deploy_scripts'
+  TARGET_VM_MAPPED_DRIVE_BACK_TO_DC_REPO: '\\\\tsclient\\D\\DC\\DC31_2\\repository\\deploy_scripts'
+  SEVEN_ZIP_PATH: 'C:\\Program Files\\7-Zip'
+  TARGET_VM_SOFTWARE_LOCATION: 'C:\\Software'
+  TARGET_VM_AUTODEPLOY_PATH: 'C:\\apps\\oracle\\Middleware\\user_projects\\domains\\tc\\autodeploy'
+  TARGET_VM_WEB_TIER_SERVICE_NAME: 'Weblogic_tc_AdminServer'
+  TARGET_VM_SERVER_POOL_SERVICE_NAME: 'Teamcenter Server Manager config1_PoolA'
+
+stages:
+- stage: Prepare
+  jobs:
+  - job: Prepare_Azure_Variables
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - script: |
+        echo '##vso[task.setvariable variable=dcEnvironmentName]$(VM_Environment_Name)_$(Build.BuildNumber)'
+        echo '##vso[task.setvariable variable=dc_quick_deploy_conf_file_name]$(Teamcenter_Install_Scenario).xml'
+        if [ "$(Teamcenter_Install_Scenario)" == "Install_Fnd114_AW41" ]; then
+          echo '##vso[task.setvariable variable=target_vm_tc_path]C:\\Program Files\\Siemens\\Teamcenter11\\teamcenter_root'
+        elif [ "$(Teamcenter_Install_Scenario)" == "Install_Fnd114_AW41_G6_102" ]; then
+          echo '##vso[task.setvariable variable=target_vm_tc_path]C:\\Program Files\\Siemens\\Teamcenter11\\teamcenter_root'
+        elif [ "$(Teamcenter_Install_Scenario)" == "Install_Fnd12_AW41" ]; then
+          echo '##vso[task.setvariable variable=target_vm_tc_path]C:\\Program Files\\Siemens\\Teamcenter12\\teamcenter_root'
+        elif [ "$(Teamcenter_Install_Scenario)" == "Install_Fnd122_AW42_G6_102" ]; then
+          echo '##vso[task.setvariable variable=target_vm_tc_path]C:\\Program Files\\Siemens\\Teamcenter12\\teamcenter_root'
+        fi
+        echo '##vso[task.setvariable variable=target_vm_machine_name]vc6s004'
+        echo '##vso[task.setvariable variable=active_workspace_war_file_path]$(target_vm_tc_path)\\aws2\\stage\\out\\awc.war'
+        echo '##vso[task.setvariable variable=web_tier_war_file_path]$(target_vm_tc_path)\\web\\Teamcenter1\\deployment\\tc.war'
+        echo '##vso[task.setvariable variable=target_vm_pool_manager_path]$(target_vm_tc_path)\\pool_manager\\confs\\config1'
+        echo '##vso[task.setvariable variable=machine_script_dir_name]deploy_$(target_vm_machine_name)'
+        echo '##vso[task.setvariable variable=machine_script_zip_name]$(machine_script_dir_name).zip'
+        echo '##vso[task.setvariable variable=scripts_dir_name]$(DC_DEPLOY_SCRIPT_DIR_NAME)_$(Build.BuildNumber)'
+        echo '##vso[task.setvariable variable=machine_script_path]$(TARGET_VM_MAPPED_DRIVE_BACK_TO_DC_REPO)\\$(dcEnvironmentName)\\install\\$(scripts_dir_name)\\$(machine_script_zip_name)'
+        echo '##vso[task.setvariable variable=unzip_target_path]$(TARGET_VM_DEPLOY_SCRIPTS_DIR)\\$(scripts_dir_name)\\$(machine_script_dir_name)'
+      displayName: 'Prepare Azure Variables'
+
+- stage: Execution
+  jobs:
+  - job: Execute_DC_Quick_Deploy
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          $JAVA_HOME='C:\\apps\\Java\\jre8x64'
+          $DC_QUICK_DEPLOY_PATH='D:\\DCQuickDeploy'
+          $DC_URL='http://cii6p797:8083/deploymentcenter'
+          $DC_DEPLOY_SCRIPT_DIR_NAME='deploy'
+          $SEVEN_ZIP_PATH='C:\\Program Files\\7-Zip'
+          $DC_ENV_NAME=$(DC_ENVIRONMENT_NAME)
+          $INPUT_FILE_PATH='scenarios\\' + $(DC_QUICK_DEPLOY_CONF_FILE_NAME)
+          $SCRIPTS_DIR_NAME=$(SCRIPTS_DIR_NAME)
+          $TARGET_VM_MACHINE_NAME=$(TARGET_VM_MACHINE_NAME)
+          & "$DC_QUICK_DEPLOY_PATH\\dc_quick_deploy.bat" "-dcurl=$DC_URL" "-environment=$DC_ENV_NAME" "-inputFile=$INPUT_FILE_PATH" "-dcusername=$dcusername" "-dcpassword=$dcpassword" "-scriptDirectoryName=$SCRIPTS_DIR_NAME" "-machine=$TARGET_VM_MACHINE_NAME"
+      displayName: 'Execute DC Quick Deploy'
+
+  - job: Copy_Deploy_Scripts_To_VM
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: CopyFiles@2
+      inputs:
+        sourceFolder: '$(TARGET_VM_MAPPED_DRIVE_BACK_TO_DC_REPO)\\$(DC_ENV_NAME)\\install\\$(SCRIPTS_DIR_NAME)\\$(MACHINE_SCRIPT_ZIP_NAME)'
+        contents: '*'
+        targetFolder: '$(TARGET_VM_DEPLOY_SCRIPTS_DIR)\\$(SCRIPTS_DIR_NAME)'
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          & "$(SEVEN_ZIP_PATH)\\7z.exe" x "$(TARGET_VM_DEPLOY_SCRIPTS_DIR)\\$(SCRIPTS_DIR_NAME)\\$(MACHINE_SCRIPT_ZIP_NAME)" -y -o"$(UNZIP_TARGET_PATH)"
+      displayName: 'Copy Deploy Scripts to VM and Unzip'
+
+  - job: Execute_Deploy
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          & "$(UNZIP_TARGET_PATH)\\deploy.bat" "-dcusername=$dcusername" "-dcpassword=$dcpassword" "-softwareLocation=$(TARGET_VM_SOFTWARE_LOCATION)"
