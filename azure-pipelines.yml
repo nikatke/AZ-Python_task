@@ -8,19 +8,17 @@ parameters:
   displayName: 'VM Environment Name'
   type: string
   values:
-  - DEV10
-  - DEV11
-  - DEV12
-  default: DEV10
+  - DEV1
+  - DEV2
+  - DEV3
+  default: DEV1
 - name: Teamcenter_Install_Scenario
   displayName: 'Teamcenter Install Scenario'
   type: string
   values:
-  - Install_Fnd114_AW41
-  - Install_Fnd114_AW41_G6_102
-  - Install_Fnd12_AW41
-  - Install_Fnd122_AW42_G6_102
-  default: Install_Fnd114_AW41
+  - Install_Fnd140
+  - Install_Fnd141
+  default: Install_Fnd140
 
 variables:
   dcusername: 'dcadmin'
