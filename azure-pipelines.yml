@@ -24,15 +24,11 @@ variables:
   dcusername: 'dcadmin'
   dcpassword: 'dcadmin'
   DC_QUICK_DEPLOY_PATH: 'D:\\DCQuickDeploy'
-  DC_URL: 'http://cii6p797:8083/deploymentcenter'
-  DC_DEPLOY_SCRIPT_DIR_NAME: 'deploy'
-  TARGET_VM_DEPLOY_SCRIPTS_DIR: 'C:\\deploy_scripts'
-  TARGET_VM_MAPPED_DRIVE_BACK_TO_DC_REPO: '\\\\tsclient\\D\\DC\\DC31_2\\repository\\deploy_scripts'
-  SEVEN_ZIP_PATH: 'C:\\Program Files\\7-Zip'
-  TARGET_VM_SOFTWARE_LOCATION: 'C:\\Software'
-  TARGET_VM_AUTODEPLOY_PATH: 'C:\\apps\\oracle\\Middleware\\user_projects\\domains\\tc\\autodeploy'
-  TARGET_VM_WEB_TIER_SERVICE_NAME: 'Weblogic_tc_AdminServer'
-  TARGET_VM_SERVER_POOL_SERVICE_NAME: 'Teamcenter Server Manager config1_PoolA'
+  DC_URL: 'http://192.168.80.54:8080//deploymentcenter'
+  DC_DEPLOY_SCRIPT_DIR_NAME: 'deploy_scripts'
+  TARGET_VM_DEPLOY_SCRIPTS_DIR: '/opt/app/siemens/deploy_$(VM_Environment_Name)'
+  TARGET_VM_MAPPED_DRIVE_BACK_TO_DC_REPO: '/opt/app/siemens/dc_14.1/repository/deploy_scripts'
+  TARGET_VM_SOFTWARE_LOCATION: '/usr/Siemens/Teamcenter14/teamcenter_root'
 
 stages:
 - stage: Prepare
