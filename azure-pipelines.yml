@@ -1,5 +1,7 @@
 trigger:
 - none
+pool: 
+  name: 'TC01'
 
 parameters:
 - name: VM_Environment_Name
